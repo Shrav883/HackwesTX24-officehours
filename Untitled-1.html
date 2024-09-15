@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Assistant Dashboard - Officehour.ai</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        
+        nav {
+            background-color: #2e7d32; /* Dark green */
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+
+        nav a {
+            color: white;
+            padding: 14px 20px;
+            text-decoration: none;
+        }
+
+        nav a:hover {
+            background-color: #388e3c; /* Lighter green */
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .calendar {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+
+        .sync-buttons {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .sync-buttons a {
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+
+        .sync-buttons a:hover {
+            background-color: #45a049;
+        }
+
+        footer {
+            background-color: #2e7d32;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        canvas {
+            width: 100%;
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="#" onclick="showSection('home')">Home</a>
+        <a href="#" onclick="showSection('quiz')">Quiz (Chatbase)</a>
+        <a href="#" onclick="showSection('grades')">Grades</a>
+        <a href="#" onclick="showSection('progress')">Progress</a>
+        <a href="#" onclick="showSection('calendar')">Academic Calendar</a>
+    </nav>
+
+    <div class="container">
+        <!-- Home Section -->
+        <div id="home" class="section active">
+            <h1>Welcome to OfficeHour.ai</h1>
+            <p>Navigate through the tabs to view your quizzes, grades, progress, and more!</p>
+
+            <div class="dashboard">
+                <div class="card">
+                    <h3>Take a Quiz</h3>
+                    <a href="#" onclick="showSection('quiz')">Go to Quiz (Chatbase)</a>
+                </div>
+                <div class="card">
+                    <h3>View Grades</h3>
+                    <a href="#" onclick="showSection('grades')">Go to Grades</a>
+                </div>
+                <div class="card">
+                    <h3>Track Progress</h3>
+                    <a href="#" onclick="showSection('progress')">Go to Progress</a>
+                </div>
+                <div class="card">
+                    <h3>Academic Calendar</h3>
+                    <a href="#" onclick="showSection('calendar')">View Calendar</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Section with wider chatbot window -->
+        <div id="quiz" class="section">
+            <h1>Take a Quiz</h1>
+            <p>Start the quiz by interacting with the GPT-4 generated True/False questions below:</p>
+            
+            <div id="quiz-container">
+                <!-- Questions will be inserted here -->
+            </div>
+            
+            <button id="submit-btn">Submit Quiz</button>
+            
+            <script>
+                const apiUrl = 'http://localhost:3000'; // Replace with your backend endpoint
+        
+                // Fetch GPT-4 generated questions from the backend
+                async function fetchQuizQuestions() {
+                    const response = await fetch(apiUrl + '/generate-quiz');
+                    const quiz = await response.json();
+        
+                    displayQuestions(quiz);
+                }
+        
+                // Display the questions in the HTML
+                function displayQuestions(quiz) {
+                    const quizContainer = document.getElementById('quiz-container');
+                    quizContainer.innerHTML = '';  // Clear previous quiz questions
+        
+                    quiz.questions.forEach((question, index) => {
+                        const questionElement = document.createElement('div');
+                        questionElement.classList.add('question');
+                        questionElement.innerHTML = `
+                            <p>${question.text}</p>
+                            <input type="radio" name="q${index}" value="true"> True
+                            <input type="radio" name="q${index}" value="false"> False
+                        `;
+                        quizContainer.appendChild(questionElement);
+                    });
+                }
+        
+                // Handle quiz submission
+                document.getElementById('submit-btn').addEventListener('click', async () => {
+                    const answers = [];
+                    const questions = document.getElementsByClassName('question');
+        
+                    for (let i = 0; i < questions.length; i++) {
+                        const radios = document.getElementsByName(`q${i}`);
+                        for (const radio of radios) {
+                            if (radio.checked) {
+                                answers.push({ questionIndex: i, answer: radio.value });
+                                break;
+                            }
+                        }
+                    }
+        
+                    // Send answers to the backend for grading
+                    const response = await fetch(apiUrl + '/submit-quiz', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ answers }),
+                    });
+        
+                    const result = await response.json();
+                    alert(`Your score is: ${result.score}`);
+                });
+        
+                // Load questions when the "Take a Quiz" section is shown
+                function showSection(sectionId) {
+                    const sections = document.getElementsByClassName('section');
+                    for (const section of sections) {
+                        section.classList.remove('active');
+                    }
+                    document.getElementById(sectionId).classList.add('active');
+        
+                    if (sectionId === 'quiz') {
+                        fetchQuizQuestions(); // Load quiz questions when quiz section is shown
+                    }
+                }
+            </script>
+        </div>
+        
+
+        <!-- Grades Section -->
+        <div id="grades" class="section">
+            <h1>Grades</h1>
+            <table>
+                <tr>
+                    <th>Student Name</th>
+                    <th>Quiz</th>
+                    <th>Grade</th>
+                </tr>
+                <tr>
+                    <td>John Doe</td>
+                    <td>Chapter 1 Quiz</td>
+                    <td>95%</td>
+                </tr>
+                <tr>
+                    <td>Jane Smith</td>
+                    <td>Chapter 1 Quiz</td>
+                    <td>88%</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progress" class="section">
+            <h1>Progress</h1>
+            <canvas id="progressChart"></canvas>
+        </div>
+
+        <!-- Academic Calendar Section -->
+        <div id="calendar" class="section">
+            <h1>Academic Calendar</h1>
+            <iframe src="https://calendar.google.com/calendar/embed?src=youremail%40domain.com&ctz=America%2FNew_York" class="calendar"></iframe>
+
+            <div class="sync-buttons">
+                <a href="https://calendar.google.com/calendar/r" target="_blank">Add to Google Calendar</a>
+                <a href="https://www.icloud.com/calendar/" target="_blank">Add to Apple Calendar</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>for jimy</p>
+        <p>&copy; 2024 Officehour.ai - Teacher Assistant Platform</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        var ctx = document.getElementById('progressChart').getContext('2d');
+        var progressChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Quiz 1', 'Quiz 2', 'Quiz 3'],
+                datasets: [{
+                    label: 'Progress',
+                    data: [85, 90, 78],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Function to show a specific section and hide others
+        function showSection(sectionId) {
+            var sections = document.getElementsByClassName('section');
+            for (var i = 0; i < sections.length; i++) {
+                sections[i].classList.remove('active');
+            }
+            document.getElementById(sectionId).classList.add('active');
+        }
+    </script>
+</body>
+</html>
